@@ -162,7 +162,7 @@ try {
                                 <tr><td colspan="6" class="py-4 text-muted">No hay horario asignado para el grupo <?= $grupo ?></td></tr>
                             <?php else: 
                                 $horas_unicas = array_unique(array_column($horarios, 'hora_inicio'));
-                                foreach($horas_unicas as $hora): ?>
+                                foreach($hor_unicas as $hora): ?>
                                     <tr>
                                         <td class="fw-bold bg-light"><?= substr($hora, 0, 5) ?></td>
                                         <?php foreach($dias as $dia): ?>
@@ -200,7 +200,7 @@ try {
                 <p class="small mb-0 opacity-90">
                     <?php 
                     if($count == 0) echo "Pendiente de evaluación.";
-                    elsei($promedioGral >= 9) echo "Rendimiento excelente. Sigue así.";
+                    elseif($promedioGral >= 9) echo "Rendimiento excelente. Sigue así.";
                     elseif($promedioGral >= 7) echo "Buen desempeño. ¡Tú puedes!";
                     else echo "Se sugiere reforzar estudios.";
                     ?>
