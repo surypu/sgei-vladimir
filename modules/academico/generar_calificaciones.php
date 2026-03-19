@@ -48,7 +48,7 @@ $fecha = date("d/m/Y");
         /* Ocultar el botón de imprimir al generar el PDF */
         @media print {
             .no-print { display: none; }
-            body { padding: 0; }
+            body { pang: 0; }
         }
     </style>
 </head>
