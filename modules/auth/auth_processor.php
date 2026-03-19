@@ -1,13 +1,19 @@
 <?php
 session_start();
+/** @var \SGEI\Config\Database $db */
 require_once '../../config/Database.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $correo = filter_var(trim($_POST['correo']), FILTER_SANITIZE_EMAIL);
-    $pass = trim($_POST['password']); // Aquí el alumno escribirá su número de control
+    // PHP 8.1 es estricto: Aseguramos que los datos sean strings y no nulls
+    $correo_raw = $_POST['correo'] ?? '';
+    $pass_raw = $_POST['password'] ?? '';
+
+    $correo = filter_var(trim((string)$correo_raw), FILTER_SANITIZE_EMAIL);
+    $pass = trim((string)$pass_raw); // Número de control del alumno
 
     // 1. --- VALIDACIÓN PARA EL ADMIN (Hardcoded para que nunca pierdas acceso) ---
-    if ($correo == 'admin@bladimir.edu' && $pass == '12345') {
+    if ($correo === 'admin@bladimir.edu' && $pass === '12345') {
+        session_regenerate_id(true); // Seguridad extra en PHP 8.1
         $_SESSION['id'] = 1;
         $_SESSION['nombre'] = "Admin Bladimir";
         $_SESSION['rol'] = 'admin';
@@ -15,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     } 
 
-    // 2. --- VALIDACIÓN PARA ALUMNOS (Usando el Hash del número de control) ---
+    // 2. --- VALIDACIÓN PARA ALUMNOS ---
     try {
         $database = new \SGEI\Config\Database();
         $db = $database->connect();
@@ -25,8 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$correo]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // password_verify toma lo que escribió el alumno ($pass) y lo compara con el hash de la DB
-        if ($user && password_verify($pass, $user['password'])) {
+        // PHP 8.1: Validamos que $user no sea false antes de usar password_verify
+        if ($user && password_verify($pass, (string)$user['password'])) {
             
             // Seguridad: Cambiamos el ID de sesión al entrar
             session_regenerate_id(true);
@@ -48,12 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
 
- } catch (Exception $e) {
-        if ($db->inTransaction()) {
-            $db->rollBack();
-        }
-        // ESTA LÍNEA ES LA CLAVE:
-        echo "<h3>⚠️ Error al guardar:</h3>";
+    } catch (Exception $e) {
+        // En PHP 8.1 los errores de PDO son excepciones por defecto
+        echo "<h3>⚠️ Error de autenticación (SGEI):</h3>";
         echo "<pre>" . $e->getMessage() . "</pre>";
         die(); 
     }

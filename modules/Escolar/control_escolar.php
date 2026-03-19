@@ -8,7 +8,9 @@ if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'admin') {
     exit(); 
 }
 
-$db = (new \SGEI\Config\Database())->connect();
+// Usamos el nuevo motor compatible con 8.1
+$database = new \SGEI\Config\Database();
+$db = $database->connect();
 
 if (isset($_GET['delete_id'])) {
     $id_del = $_GET['delete_id'];
@@ -18,7 +20,7 @@ if (isset($_GET['delete_id'])) {
 }
 
 try {
-    // Consulta que mantiene todo lo anterior y suma Grupo + Promedio
+    // Consulta optimizada
     $sql = "SELECT 
                 a.id_alumno, 
                 a.numero_control, 
@@ -87,7 +89,7 @@ try {
     <div class="container">
         <a class="navbar-brand fw-bold" href="#">SGEI VLADIMIR</a>
         <div class="d-flex align-items-center">
-            <span class="text-white me-3 d-none d-md-inline small">Sesion: <b><?= $_SESSION['nombre'] ?></b></span>
+            <span class="text-white me-3 d-none d-md-inline small">Sesion: <b><?= htmlspecialchars($_SESSION['nombre'] ?? 'Usuario') ?></b></span>
             <a href="../auth/logout.php" class="btn btn-sm btn-outline-light border-0">Cerrar Sesion</a>
         </div>
     </div>
@@ -148,13 +150,17 @@ try {
                 <tbody>
                     <?php foreach($alumnos as $a): ?>
                     <tr>
-                        <td><span class="text-muted small fw-bold"><?= $a['numero_control'] ?></span></td>
-                        <td class="text-start fw-bold"><?= $a['nombre_completo'] ?></td>
-                        <td><span class="badge badge-grupo px-2 py-1"><?= $a['grupo'] ?></span></td>
-                        <td class="small text-muted"><?= $a['correo'] ?></td>
+                        <td><span class="text-muted small fw-bold"><?= htmlspecialchars((string)($a['numero_control'] ?? '')) ?></span></td>
+                        <td class="text-start fw-bold"><?= htmlspecialchars((string)($a['nombre_completo'] ?? '')) ?></td>
+                        <td><span class="badge badge-grupo px-2 py-1"><?= htmlspecialchars((string)($a['grupo'] ?? 'N/A')) ?></span></td>
+                        <td class="small text-muted"><?= htmlspecialchars((string)($a['correo'] ?? '')) ?></td>
                         <td>
-                            <strong class="<?= $a['promedio_gral'] < 6 ? 'text-danger' : 'text-primary' ?>">
-                                <?= number_format($a['promedio_gral'], 1) ?>
+                            <?php 
+                                // PHP 8.1 FIX: Evitamos error si el promedio es NULL
+                                $promedio = (float)($a['promedio_gral'] ?? 0); 
+                            ?>
+                            <strong class="<?= $promedio < 6 ? 'text-danger' : 'text-primary' ?>">
+                                <?= number_format($promedio, 1) ?>
                             </strong>
                         </td>
                         <td>

@@ -1,5 +1,6 @@
 <?php
 session_start();
+/** @var \SGEI\Config\Database $db */
 require_once $_SERVER['DOCUMENT_ROOT'] . '/sgei/config/Database.php';
 
 if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'admin') {
@@ -10,34 +11,44 @@ if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'admin') {
 $database = new \SGEI\Config\Database();
 $db = $database->connect();
 
+// PHP 8.1: FETCH_ASSOC por defecto para evitar duplicidad de datos en el array
 $sqlAlumnos = "SELECT a.id_alumno, u.nombre_completo FROM alumnos a JOIN usuarios u ON a.id_alumno = u.id_usuario";
-$alumnos = $db->query($sqlAlumnos)->fetchAll();
+$alumnos = $db->query($sqlAlumnos)->fetchAll(PDO::FETCH_ASSOC);
 
-$materias = $db->query("SELECT * FROM materias")->fetchAll();
+$materias = $db->query("SELECT * FROM materias")->fetchAll(PDO::FETCH_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        $id_alumno = $_POST['id_alumno'];
-        $id_materia = $_POST['id_materia'];
-        $nota = $_POST['nota'];
-        $parcial = $_POST['parcial']; 
+        // PHP 8.1: Aseguramos tipos de datos desde el inicio
+        $id_alumno = (int)($_POST['id_alumno'] ?? 0);
+        $id_materia = (int)($_POST['id_materia'] ?? 0);
+        $nota = (float)($_POST['nota'] ?? 0);
+        $parcial_solicitado = $_POST['parcial'] ?? '';
 
-        if(empty($id_alumno)) throw new Exception("Selecciona un alumno valido.");
+        // Validación de White-list para el nombre de la columna (seguridad extra)
+        $parciales_validos = ['parcial1', 'parcial2', 'parcial3'];
+        if (!in_array($parcial_solicitado, $parciales_validos)) {
+            throw new Exception("Periodo no válido.");
+        }
 
-        $sql = "INSERT INTO calificaciones (id_alumno, id_materia, $parcial) 
+        if(empty($id_alumno)) throw new Exception("Selecciona un alumno válido de la lista.");
+        if(empty($id_materia)) throw new Exception("Selecciona una asignatura.");
+
+        // Usamos la variable validada para la columna
+        $sql = "INSERT INTO calificaciones (id_alumno, id_materia, $parcial_solicitado) 
                 VALUES (?, ?, ?) 
-                ON DUPLICATE KEY UPDATE $parcial = VALUES($parcial)";
+                ON DUPLICATE KEY UPDATE $parcial_solicitado = VALUES($parcial_solicitado)";
         
         $stmt = $db->prepare($sql);
         $stmt->execute([$id_alumno, $id_materia, $nota]);
         
         echo "<script>
-                alert('Registro de " . strtoupper($parcial) . " guardado correctamente'); 
+                alert('Registro de " . strtoupper($parcial_solicitado) . " guardado correctamente'); 
                 window.location.href='../../Escolar/control_escolar.php';
               </script>";
         exit();
     } catch (Exception $e) {
-        echo "<div class='alert alert-danger m-3 small'>Error: " . $e->getMessage() . "</div>";
+        $error_msj = $e->getMessage();
     }
 }
 ?>
@@ -114,10 +125,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="p-4">
 
     <div class="container col-md-5 mt-4">
+        <?php if(isset($error_msj)): ?>
+            <div class='alert alert-danger shadow-sm mb-3'><i class="bi bi-exclamation-triangle-fill me-2"></i> <?= htmlspecialchars($error_msj) ?></div>
+        <?php endif; ?>
+
         <div class="card card-custom overflow-hidden">
             <div class="card-header-vlad text-center">
                 <h4 class="m-0 fw-bold">Captura de Calificaciones</h4>
-                <p class="small m-0 opacity-75">Asignacion de rendimiento por parcial</p>
+                <p class="small m-0 opacity-75">Asignación de rendimiento por parcial</p>
             </div>
             <div class="card-body p-4">
                 <form method="POST" autocomplete="off">
@@ -126,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input class="form-control" list="listaAlumnos" id="inputAlumno" placeholder="Buscar nombre del alumno..." required>
                         <datalist id="listaAlumnos">
                             <?php foreach($alumnos as $al): ?>
-                                <option data-id="<?= $al['id_alumno'] ?>" value="<?= $al['nombre_completo'] ?>">
+                                <option data-id="<?= $al['id_alumno'] ?>" value="<?= htmlspecialchars((string)$al['nombre_completo']) ?>">
                             <?php endforeach; ?>
                         </datalist>
                         <input type="hidden" name="id_alumno" id="id_alumno_hidden">
@@ -137,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <select name="id_materia" class="form-select" required>
                             <option value="" disabled selected>Seleccione materia</option>
                             <?php foreach($materias as $ma): ?>
-                                <option value="<?= $ma['id_materia'] ?>"><?= $ma['nombre_materia'] ?></option>
+                                <option value="<?= $ma['id_materia'] ?>"><?= htmlspecialchars((string)$ma['nombre_materia']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -152,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold text-uppercase">Calificacion</label>
+                            <label class="form-label fw-bold text-uppercase">Calificación</label>
                             <input type="number" name="nota" step="0.1" class="form-control" min="0" max="10" placeholder="0.0" required>
                         </div>
                     </div>
