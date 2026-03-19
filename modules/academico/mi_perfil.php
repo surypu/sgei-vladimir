@@ -200,7 +200,7 @@ try {
                 <p class="small mb-0 opacity-90">
                     <?php 
                     if($count == 0) echo "Pendiente de evaluación.";
-                    elseif($promedioGral >= 9) echo "Rendimiento excelente. Sigue así.";
+                    elsei($promedioGral >= 9) echo "Rendimiento excelente. Sigue así.";
                     elseif($promedioGral >= 7) echo "Buen desempeño. ¡Tú puedes!";
                     else echo "Se sugiere reforzar estudios.";
                     ?>
