@@ -4,7 +4,7 @@ session_start();
 require_once '../../config/Database.php';
 
 // Verificación de seguridad
-if (!isset($_SESSION['rol'])) { header("Location: ../../index.php"); exit(); }
+if (!isset($_SEION['rol'])) { header("Location: ../../index.php"); exit(); }
 
 $db = (new SGEI\Config\Database())->connect();
 

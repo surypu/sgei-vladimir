@@ -162,7 +162,7 @@ try {
                                 <tr><td colspan="6" class="py-4 text-muted">No hay horario asignado para el grupo <?= $grupo ?></td></tr>
                             <?php else: 
                                 $horas_unicas = array_unique(array_column($horarios, 'hora_inicio'));
-                                foreach($hor_unicas as $hora): ?>
+                                foreach($horas_unicas as $hora): ?>
                                     <tr>
                                         <td class="fw-bold bg-light"><?= substr($hora, 0, 5) ?></td>
                                         <?php foreach($dias as $dia): ?>
